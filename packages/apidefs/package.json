@@ -1,5 +1,5 @@
 {
-  "name": "apez",
+  "name": "apiiz",
   "version": "0.0.8",
   "description": "Create API mappings with ease",
   "author": "linq2js <linqtojs@gmail.com>",
@@ -40,5 +40,5 @@
     "ts-node": "ts-node",
     "build": "rimraf dist && tsc"
   },
-  "gitHead": "5d57763ed8db72ad10f50dc50d4e5ffdc3fbe2a8"
+  "gitHead": "8ca5b169e55a6531da7f9b5f4fb8023dc1666bf5"
 }
