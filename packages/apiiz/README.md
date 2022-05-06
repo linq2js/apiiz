@@ -127,7 +127,7 @@ const api = define({
   configs: { http: { baseUrl: "https://yourserver.com/api" } },
   // the url will prepend baseUrl from http configs
   getUserById: loader(
-    // we are not sure the user list that is returned from server has same other with id list
+    // we are not sure the user list that is returned from server has same order with id list
     // so we use transform resolver to re-order the result
     transform(
       rest("/getUsers", {
