@@ -15,7 +15,10 @@
   },
   "files": [
     "lib",
-    "dist/tsc"
+    "dist/tsc",
+    "loader",
+    "graphql",
+    "rest"
   ],
   "keywords": [],
   "peerDependencies": {
