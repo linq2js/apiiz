@@ -1,0 +1,4 @@
+{
+  "main": "../dist/tsc/loader.js",
+  "types": "../dist/tsc/loader.d.ts"
+}

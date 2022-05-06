@@ -1,0 +1,4 @@
+{
+  "main": "../dist/tsc/graphql.js",
+  "types": "../dist/tsc/graphql.d.ts"
+}

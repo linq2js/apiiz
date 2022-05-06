@@ -1,0 +1,42 @@
+{
+  "name": "apidef",
+  "version": "0.0.0",
+  "description": "Create API mappings with ease",
+  "author": "linq2js <linqtojs@gmail.com>",
+  "repository": {
+    "url": "https://github.com/linq2js/apidef"
+  },
+  "homepage": "https://linq2js.github.io/apidef/",
+  "license": "ISC",
+  "main": "dist/tsc/main.js",
+  "types": "dist/tsc/main.d.ts",
+  "directories": {
+    "lib": "lib"
+  },
+  "files": [
+    "lib",
+    "dist/tsc"
+  ],
+  "keywords": [],
+  "peerDependencies": {
+    "axios": "^0.27.2",
+    "dataloader": "^2.1.0"
+  },
+  "peerDependenciesMeta": {
+    "axios": {
+      "optional": true
+    },
+    "datalaoder": {
+      "optional": true
+    }
+  },
+  "scripts": {
+    "prepublishOnly": "yarn test && yarn && yarn build",
+    "lint": "eslint lib/ --ext .js,.jsx,.ts,.tsx",
+    "test": "jest --passWithNoTests",
+    "clean": "rm -rf dist build package",
+    "ts-node": "ts-node",
+    "build": "rimraf dist && tsc"
+  },
+  "gitHead": "9c6f79491a82d98e4d2b2d49eef3df43484940d1"
+}
