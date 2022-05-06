@@ -6,7 +6,7 @@ export interface Configs {
 export type OptionBuilder<P = void, T = any> = T | ((payload: P) => T);
 
 export interface HttpConfigs<P = any> {
-  urlPrefix?: string;
+  baseUrl?: string;
   headers?: OptionBuilder<P, Dictionary>;
 }
 

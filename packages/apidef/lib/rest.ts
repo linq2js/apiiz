@@ -1,8 +1,7 @@
 import axios from "axios";
 import { Dictionary, HttpConfigs, OptionBuilder, Resolver } from "./main";
 
-export interface RestOptions<P = any>
-  extends Omit<HttpConfigs<P>, "urlPrefix"> {
+export interface RestOptions<P = any> extends Omit<HttpConfigs<P>, "baseUrl"> {
   type?: "get" | "post" | "head" | "options" | "put" | "delete" | "patch";
   params?: OptionBuilder<P, Dictionary>;
   query?: OptionBuilder<P, Dictionary>;
@@ -15,7 +14,7 @@ export const rest = Object.assign(
   <P = void, R = any>(url: string, options?: RestOptions<P>): Resolver<P, R> =>
     (configs) => {
       const restConfigs = configs.$rest as RestConfigs | undefined;
-      const urlPrefix = restConfigs?.urlPrefix ?? configs.http?.urlPrefix ?? "";
+      const baseUrl = restConfigs?.baseUrl ?? configs.http?.baseUrl ?? "";
       return (async (payload?: P): Promise<R> => {
         const allOptions: RestOptions[] = [];
         if (configs.http) allOptions.push({ ...configs.http });
@@ -59,7 +58,7 @@ export const rest = Object.assign(
           }
         }
         const res = await axios({
-          url: `${urlPrefix}${url}`.replace(
+          url: `${baseUrl}${url}`.replace(
             /\{([^{}]+)\}/g,
             (_, k) => params[k] ?? ""
           ),

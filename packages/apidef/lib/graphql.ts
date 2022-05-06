@@ -9,8 +9,7 @@ import {
 
 export interface GraphQLConfigs extends HttpConfigs, GraphQLOptions {}
 
-export interface GraphQLOptions<P = any>
-  extends Omit<HttpConfigs, "urlPrefix"> {
+export interface GraphQLOptions<P = any> extends Omit<HttpConfigs, "baseUrl"> {
   vars?: OptionBuilder<P, Dictionary>;
 }
 
@@ -49,8 +48,7 @@ const graphqlApiCreator: GraphQLApiCreator = (
   }
   return (configs) => {
     const graphqlConfigs = configs.$graphql as GraphQLConfigs | undefined;
-    const urlPrefix =
-      graphqlConfigs?.urlPrefix ?? configs.http?.urlPrefix ?? "";
+    const baseUrl = graphqlConfigs?.baseUrl ?? configs.http?.baseUrl ?? "";
     return async (payload: any): Promise<any> => {
       const allOptions: GraphQLOptions[] = [];
       if (configs.http) allOptions.push({ ...configs.http });
@@ -81,7 +79,7 @@ const graphqlApiCreator: GraphQLApiCreator = (
       }
 
       const res = await axios({
-        url: urlPrefix,
+        url: baseUrl,
         method: "post",
         headers,
         data: {

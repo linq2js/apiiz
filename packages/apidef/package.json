@@ -1,5 +1,5 @@
 {
-  "name": "apidef",
+  "name": "apidefs",
   "version": "0.0.2",
   "description": "Create API mappings with ease",
   "author": "linq2js <linqtojs@gmail.com>",
@@ -38,5 +38,5 @@
     "ts-node": "ts-node",
     "build": "rimraf dist && tsc"
   },
-  "gitHead": "e7be18f4ed46a546f202da6a6d3f6ed77ec1d70e"
+  "gitHead": "a02d427e078f38c241be8e406da98da646ffbca6"
 }
