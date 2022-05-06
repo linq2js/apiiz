@@ -1,18 +1,33 @@
-import axios from "axios";
-import { Dictionary, HttpConfigs, OptionBuilder, Resolver } from "./main";
+import {
+  Dictionary,
+  ErrorBase,
+  foreverPromise,
+  HttpConfigs,
+  HttpMethod,
+  OptionBuilder,
+  Resolver,
+} from "./main";
 
 export interface RestOptions<P = any> extends Omit<HttpConfigs<P>, "baseUrl"> {
-  type?: "get" | "post" | "head" | "options" | "put" | "delete" | "patch";
+  method?: HttpMethod;
+  onError?(error: RestError): void;
   params?: OptionBuilder<P, Dictionary>;
   query?: OptionBuilder<P, Dictionary>;
   body?: OptionBuilder<P>;
+  dismissErrors?: boolean;
+}
+
+export class RestError extends ErrorBase {
+  constructor(e: any) {
+    super(e);
+  }
 }
 
 export interface RestConfigs extends RestOptions, HttpConfigs {}
 
 export const rest = Object.assign(
   <P = void, R = any>(url: string, options?: RestOptions<P>): Resolver<P, R> =>
-    (configs) => {
+    ({ configs, http }) => {
       const restConfigs = configs.$rest as RestConfigs | undefined;
       const baseUrl = restConfigs?.baseUrl ?? configs.http?.baseUrl ?? "";
       return (async (payload?: P): Promise<R> => {
@@ -24,6 +39,7 @@ export const rest = Object.assign(
         const headers: Dictionary = {};
         const query: Dictionary = {};
         const params: Dictionary = {};
+
         let body: any;
         for (const options of allOptions) {
           if (options.headers) {
@@ -57,17 +73,33 @@ export const rest = Object.assign(
                 : options.body;
           }
         }
-        const res = await axios({
-          url: `${baseUrl}${url}`.replace(
-            /\{([^{}]+)\}/g,
-            (_, k) => params[k] ?? ""
-          ),
-          method: options?.type ?? "get",
-          headers,
-          params: query,
-          data: body,
-        });
-        return res.data as R;
+        try {
+          const res = await http({
+            url: `${baseUrl}${url}`.replace(
+              /\{([^{}]+)\}/g,
+              (_, k) => params[k] ?? ""
+            ),
+            method: options?.method ?? "get",
+            headers,
+            query,
+            body,
+          });
+
+          return res.data as R;
+        } catch (e) {
+          const error = new RestError(e);
+          configs.onError?.(error);
+          restConfigs?.onError?.(error);
+          options?.onError?.(error);
+          if (
+            options?.dismissErrors ||
+            restConfigs?.dismissErrors ||
+            configs.dismissErrors
+          ) {
+            return foreverPromise;
+          }
+          throw e;
+        }
       }) as any;
     },
   {

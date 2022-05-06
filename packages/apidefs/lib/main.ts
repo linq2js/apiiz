@@ -1,68 +1,54 @@
-export interface Configs {
-  http?: HttpConfigs;
-  [key: string]: any;
-}
+import { http } from "./http";
+import {
+  Context,
+  Define,
+  Dictionary,
+  Dispatcher,
+  Middleware,
+  Resolver,
+} from "./types";
 
-export type OptionBuilder<P = void, T = any> = T | ((payload: P) => T);
+export * from "./types";
 
-export interface HttpConfigs<P = any> {
-  baseUrl?: string;
-  headers?: OptionBuilder<P, Dictionary>;
-}
+export { http };
 
-export type Enhancer = (configs: Configs) => (next: Dispatcher) => Dispatcher;
+export const foreverPromise = new Promise<any>(() => {});
 
-export type Mappings<T> = {
-  [key in keyof T]: T[key] extends Resolver<infer P, infer R>
-    ? Dispatcher<P, R>
-    : never;
-};
-
-export interface Define {
-  <T>(schema: T): Mappings<T>;
-  <T>(configs: Configs, schema: T): Mappings<T>;
-}
-
-export const define: Define = (...args: any[]): any => {
-  let configs: Configs;
-  let schema: any;
-  if (args.length > 1) {
-    [configs, schema] = args;
-  } else {
-    configs = {};
-    [schema] = args;
-  }
+export const define: Define = ({ configs = {}, ...schema }): any => {
   const mapping: Dictionary = {};
-  Object.keys(schema).forEach((key) => {
-    mapping[key] = schema[key](configs);
-  });
+  const middleware = configs.middleware;
+  const context: Context = { configs, http: configs.http?.driver ?? http };
+  if (middleware) {
+    Object.keys(schema).forEach((key) => {
+      mapping[key] = use(schema[key], ...middleware)(context);
+    });
+  } else {
+    Object.keys(schema).forEach((key) => {
+      mapping[key] = schema[key](context);
+    });
+  }
+
   return mapping;
 };
 
-export type Resolver<P = any, R = any> = (config: Configs) => Dispatcher<P, R>;
-
-export type Dictionary<T = any> = { [key: string]: T };
-
-export type Dispatcher<P = any, R = any> = P extends undefined
-  ? (payload?: P) => Promise<R>
-  : (payload: P) => Promise<R>;
-
 export const wrap =
-  <P, R>(fn: (payload: P, configs: Configs) => R): Resolver<P, R> =>
-  (configs) =>
-    ((payload: P) => fn(payload, configs)) as any;
+  <P, R>(fn: (payload: P, context: Context) => R): Resolver<P, R> =>
+  (context) =>
+    ((payload: P) => fn(payload, context)) as any;
 
 export function use<P = void, R = any>(
   resolver: Resolver<P, R>,
-  ...extensions: Enhancer[]
+  ...middlware: (typeof resolver extends Resolver<infer P, infer R>
+    ? Middleware<P, R>
+    : never)[]
 ): Resolver<P, R> {
-  if (!extensions.length) return resolver;
+  if (!middlware.length) return resolver;
 
-  return (configs) => {
-    let enhancers = extensions.map((e) => e(configs));
-    const dispatcher: Dispatcher = resolver(configs);
-    return enhancers.reduceRight(
-      (next, e) => (payload: any) => e(next)(payload),
+  return (context) => {
+    let results = middlware.map((e) => e(context));
+    const dispatcher: Dispatcher = resolver(context);
+    return results.reduceRight(
+      (next, e) => (payload: any) => e(next as Dispatcher<P, R>)(payload),
       dispatcher
     ) as Dispatcher<P, R>;
   };
@@ -74,14 +60,14 @@ export function getPropValue(obj: any, path: string) {
 
 export function transform<P = void, T = any, R = any>(
   resolver: Resolver<P, R>,
-  transformer: ((result: R, payload: P, configs: Configs) => T) | string
+  transformer: ((result: R, payload: P, context: Context) => T) | string
 ): Resolver<P, T> {
-  return (configs): any => {
-    const dispatcher = resolver(configs);
+  return (context): any => {
+    const dispatcher = resolver(context);
     return async (payload: P) => {
       const result = await dispatcher(payload);
       if (typeof transformer === "function") {
-        return transformer(result, payload, configs);
+        return transformer(result, payload, context);
       }
       return getPropValue(result, transformer);
     };

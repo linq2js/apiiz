@@ -21,14 +21,13 @@
     "rest"
   ],
   "keywords": [],
+  "dependencies": {
+    "axios": "^0.27.2"
+  },
   "peerDependencies": {
-    "axios": "^0.27.2",
     "dataloader": "^2.1.0"
   },
   "peerDependenciesMeta": {
-    "axios": {
-      "optional": true
-    },
     "datalaoder": {
       "optional": true
     }

@@ -6,8 +6,8 @@ export const loader =
     dataResolver: Resolver<P[], R[]>,
     options?: DataLoader.Options<P, any, any>
   ): Resolver<P, R> =>
-  (configs) => {
-    const dispatcher = dataResolver(configs);
+  (context) => {
+    const dispatcher = dataResolver(context);
     console.log(dispatcher);
     const dataLoader = new DataLoader(
       (payload) => dispatcher(payload as P[]),
