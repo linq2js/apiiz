@@ -1,4 +1,4 @@
-# `apidefs`
+# `apiiz`
 
 Create API mappings with ease
 
@@ -7,13 +7,13 @@ Create API mappings with ease
 **with NPM**
 
 ```bash
-npm i apidefs --save
+npm i apiiz --save
 ```
 
 **with YARN**
 
 ```bash
-yarn add apidefs
+yarn add apiiz
 ```
 
 ## Peer dependencies
@@ -33,8 +33,8 @@ yarn add apidefs
 ### Defining simple REST API
 
 ```js
-import { define } from "apidefs";
-import { rest } from "apidefs/rest";
+import { define } from "apiiz";
+import { rest } from "apiiz/rest";
 
 const api = define({
   getUserById: rest("https://yourserver.com/api/getUserById/{id}", {
@@ -48,7 +48,7 @@ const api = define({
   }),
 });
 
-// apidefs will generate an object that has getUserById method
+// apiiz will generate an object that has getUserById method
 // a API mapped method returns a promise object. The promise object will resolve when request completed and reject if there is any HTTP error
 api.getUserById(1);
 ```
@@ -56,9 +56,9 @@ api.getUserById(1);
 ### Defining GraphQL API
 
 ```js
-import { define } from "apidefs";
+import { define } from "apiiz";
 import gql from "graphql-tag";
-import { graphql } from "apidefs/graphql";
+import { graphql } from "apiiz/graphql";
 
 const getMediaByIdQuery = gql`
   query GetMediaById($id: Int!) {
@@ -117,12 +117,12 @@ const api = define({
 
 ### Using dataloader
 
-apidefs uses dataloader package for handling batch requests. Let say you have an API get users by id list
+apiiz uses dataloader package for handling batch requests. Let say you have an API get users by id list
 
 ```js
-import { transform } from "apidefs";
-import { loader } from "apidefs/loader";
-import { rest } from "apidefs/rest";
+import { transform } from "apiiz";
+import { loader } from "apiiz/loader";
+import { rest } from "apiiz/rest";
 const api = define({
   configs: { http: { baseUrl: "https://yourserver.com/api" } },
   // the url will prepend baseUrl from http configs
@@ -173,11 +173,11 @@ const api = define({
 
 ### Using middleware
 
-apidefs provides middleware machanism, where you can control requests working flow with ease
+apiiz provides middleware machanism, where you can control requests working flow with ease
 
 ```js
-import { use, define } from "apidefs";
-import { rest } from "apidefs/rest";
+import { use, define } from "apiiz";
+import { rest } from "apiiz/rest";
 
 // simple cache middleware
 const cache = (keyFactory) => (context) => {
@@ -208,4 +208,4 @@ api.getUserById(1);
 
 ## API References
 
-https://linq2js.github.io/apidefs/
+https://linq2js.github.io/apiiz/

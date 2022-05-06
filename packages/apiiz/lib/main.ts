@@ -36,12 +36,12 @@ export const wrap =
   (context) =>
     ((payload: P) => fn(payload, context)) as any;
 
-export function use<P = void, R = any>(
+export const use = <P = void, R = any>(
   resolver: Resolver<P, R>,
   ...middlware: (typeof resolver extends Resolver<infer P, infer R>
     ? Middleware<P, R>
     : never)[]
-): Resolver<P, R> {
+): Resolver<P, R> => {
   if (!middlware.length) return resolver;
 
   return (context) => {
@@ -52,17 +52,17 @@ export function use<P = void, R = any>(
       dispatcher
     ) as Dispatcher<P, R>;
   };
-}
+};
 
-export function getPropValue(obj: any, path: string) {
-  return path.split(".").reduce((o, p) => o?.[p], obj);
-}
+export const getPropValue = (obj: any, path: string) =>
+  path.split(".").reduce((o, p) => o?.[p], obj);
 
-export function transform<P = void, T = any, R = any>(
-  resolver: Resolver<P, R>,
-  transformer: ((result: R, payload: P, context: Context) => T) | string
-): Resolver<P, T> {
-  return (context): any => {
+export const transform =
+  <P = void, T = any, R = any>(
+    resolver: Resolver<P, R>,
+    transformer: ((result: R, payload: P, context: Context) => T) | string
+  ): Resolver<P, T> =>
+  (context): any => {
     const dispatcher = resolver(context);
     return async (payload: P) => {
       const result = await dispatcher(payload);
@@ -72,4 +72,30 @@ export function transform<P = void, T = any, R = any>(
       return getPropValue(result, transformer);
     };
   };
-}
+
+export const on =
+  ({
+    success,
+    error,
+    done,
+  }: {
+    success?: (result: any) => void;
+    error?: (error: any) => void;
+    done?: VoidFunction;
+  }): Middleware =>
+  (_) =>
+  (dispatcher) =>
+  (payload: any) => {
+    return dispatcher(payload).then(
+      (x) => {
+        success?.(x);
+        done?.();
+        return x;
+      },
+      (x) => {
+        error?.(x);
+        done?.();
+        throw x;
+      }
+    );
+  };

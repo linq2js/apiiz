@@ -7,6 +7,7 @@ import {
   ErrorBase,
   foreverPromise,
 } from "./main";
+import { getOption } from "./utils";
 
 export interface GraphQLConfigs extends HttpConfigs, GraphQLOptions {}
 
@@ -50,7 +51,7 @@ export interface GraphQLApiCreator {
   ): Resolver<P, R>;
 }
 
-const graphqlApiCreator: GraphQLApiCreator = (
+const apiCreator: GraphQLApiCreator = (
   query: any,
   ...args: any[]
 ): Resolver => {
@@ -72,43 +73,23 @@ const graphqlApiCreator: GraphQLApiCreator = (
     const graphqlConfigs = configs.$graphql as GraphQLConfigs | undefined;
     const baseUrl = graphqlConfigs?.baseUrl ?? configs.http?.baseUrl ?? "";
     return async (payload: any): Promise<any> => {
-      const allOptions: GraphQLOptions[] = [];
-      if (configs.http) allOptions.push({ ...configs.http });
-      if (graphqlConfigs) allOptions.push(graphqlConfigs);
-      if (options) allOptions.push(options);
+      const headers: Dictionary = {
+        ...getOption(configs.http?.headers, payload),
+        ...getOption(graphqlConfigs?.headers, payload),
+        ...getOption(options?.headers, payload),
+      };
 
-      const headers: Dictionary = {};
-      const variables: Dictionary = {};
-
-      for (const options of allOptions) {
-        if (options.headers) {
-          Object.assign(
-            headers,
-            typeof options.headers === "function"
-              ? options.headers(payload)
-              : options.headers
-          );
-        }
-
-        if (options.vars) {
-          Object.assign(
-            variables,
-            typeof options.vars === "function"
-              ? options.vars(payload)
-              : options.vars
-          );
-        }
-      }
+      const variables: Dictionary = {
+        ...getOption(graphqlConfigs?.vars, payload),
+        ...getOption(options?.vars, payload),
+      };
 
       try {
         const res = await http({
           url: `${baseUrl}${options?.url ?? ""}`,
           method: "post",
           headers,
-          body: {
-            query,
-            variables,
-          },
+          body: { query, variables },
         });
 
         const graphqlData = res.data;
@@ -140,10 +121,6 @@ const graphqlApiCreator: GraphQLApiCreator = (
   };
 };
 
-const graphqlConfigsBuilder = (configs: GraphQLConfigs) => ({
-  $graphql: configs,
-});
+const configsBuilder = (configs: GraphQLConfigs) => ({ $graphql: configs });
 
-export const graphql = Object.assign(graphqlApiCreator, {
-  configs: graphqlConfigsBuilder,
-});
+export const graphql = Object.assign(apiCreator, { configs: configsBuilder });

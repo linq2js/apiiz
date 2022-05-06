@@ -4,7 +4,7 @@
   "scripts": {
     "build-all": "lerna run build --no-private --parallel",
     "test-all": "lerna run test --no-private --parallel",
-    "docs": "npx typedoc --tsconfig ./packages/apidefs/tsconfig.json --entryPoints ./packages/apidefs/lib/main.ts --out ./docs",
+    "docs": "npx typedoc --tsconfig ./packages/apiiz/tsconfig.json --entryPoints ./packages/apiiz/lib/main.ts --out ./docs",
     "publish-all": "lerna publish",
     "bootstrap": "lerna bootstrap"
   },

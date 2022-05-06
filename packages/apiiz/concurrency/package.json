@@ -1,0 +1,4 @@
+{
+  "main": "../dist/tsc/concurrency.js",
+  "types": "../dist/tsc/concurrency.d.ts"
+}
