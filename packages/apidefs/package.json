@@ -1,6 +1,6 @@
 {
   "name": "apidefs",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Create API mappings with ease",
   "author": "linq2js <linqtojs@gmail.com>",
   "repository": {
