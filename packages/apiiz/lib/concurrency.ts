@@ -1,14 +1,15 @@
-import { foreverPromise } from "./main";
-import { Middleware } from "./types";
+import { Resolver } from "./types";
+import { foreverPromise } from "./utils";
 
 export const debounce =
-  (ms: number): Middleware =>
-  (_) => {
+  <P, R>(resolver: Resolver<P, R>, ms: number): Resolver<P, R> =>
+  (context) => {
+    const dispatcher = resolver(context);
     let timer: any;
     let resolve: VoidFunction | undefined;
     let reject: VoidFunction | undefined;
 
-    return (dispatcher) => async (payload: any) =>
+    return (payload) =>
       new Promise((...args: any[]) => {
         clearTimeout(timer);
         timer = setTimeout(() => dispatcher(payload).then(resolve, reject), ms);
@@ -17,10 +18,12 @@ export const debounce =
   };
 
 export const throttle =
-  (ms: number): Middleware =>
-  (_) => {
+  <P, R>(resolver: Resolver<P, R>, ms: number): Resolver<P, R> =>
+  (context) => {
+    const dispatcher = resolver(context);
     let last: number;
-    return (dispatcher) => async (payload: any) => {
+
+    return (payload) => {
       const now = Date.now();
       if (last + ms > now) {
         return foreverPromise;

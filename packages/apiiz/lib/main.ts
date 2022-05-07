@@ -1,26 +1,20 @@
 import { http } from "./http";
-import {
-  Context,
-  Define,
-  Dictionary,
-  Dispatcher,
-  Middleware,
-  Resolver,
-} from "./types";
+import { Context, Define, Dictionary, Use, Resolver } from "./types";
 
 export * from "./types";
 
 export { http };
 
-export const foreverPromise = new Promise<any>(() => {});
-
 export const define: Define = ({ configs = {}, ...schema }): any => {
   const mapping: Dictionary = {};
-  const middleware = configs.middleware;
+  const hor = configs.hor;
   const context: Context = { configs, http: configs.http?.driver ?? http };
-  if (middleware) {
+  if (hor) {
     Object.keys(schema).forEach((key) => {
-      mapping[key] = use(schema[key], ...middleware)(context);
+      mapping[key] = hor.reduce(
+        (prev, x) => prev.with(x),
+        use(schema[key])
+      )(context);
     });
   } else {
     Object.keys(schema).forEach((key) => {
@@ -31,71 +25,10 @@ export const define: Define = ({ configs = {}, ...schema }): any => {
   return mapping;
 };
 
-export const wrap =
-  <P, R>(fn: (payload: P, context: Context) => R): Resolver<P, R> =>
-  (context) =>
-    ((payload: P) => fn(payload, context)) as any;
-
-export const use = <P = void, R = any>(
-  resolver: Resolver<P, R>,
-  ...middlware: (typeof resolver extends Resolver<infer P, infer R>
-    ? Middleware<P, R>
-    : never)[]
-): Resolver<P, R> => {
-  if (!middlware.length) return resolver;
-
-  return (context) => {
-    let results = middlware.map((e) => e(context));
-    const dispatcher: Dispatcher = resolver(context);
-    return results.reduceRight(
-      (next, e) => (payload: any) => e(next as Dispatcher<P, R>)(payload),
-      dispatcher
-    ) as Dispatcher<P, R>;
-  };
+export const use = <P, R>(resolver: Resolver<P, R>): Use<P, R> => {
+  return Object.assign((context: Context) => resolver(context), {
+    with(hor: Function, ...args: any[]) {
+      return use(hor(resolver, ...args)) as any;
+    },
+  });
 };
-
-export const getPropValue = (obj: any, path: string) =>
-  path.split(".").reduce((o, p) => o?.[p], obj);
-
-export const transform =
-  <P = void, T = any, R = any>(
-    resolver: Resolver<P, R>,
-    transformer: ((result: R, payload: P, context: Context) => T) | string
-  ): Resolver<P, T> =>
-  (context): any => {
-    const dispatcher = resolver(context);
-    return async (payload: P) => {
-      const result = await dispatcher(payload);
-      if (typeof transformer === "function") {
-        return transformer(result, payload, context);
-      }
-      return getPropValue(result, transformer);
-    };
-  };
-
-export const on =
-  ({
-    success,
-    error,
-    done,
-  }: {
-    success?: (result: any) => void;
-    error?: (error: any) => void;
-    done?: VoidFunction;
-  }): Middleware =>
-  (_) =>
-  (dispatcher) =>
-  (payload: any) => {
-    return dispatcher(payload).then(
-      (x) => {
-        success?.(x);
-        done?.();
-        return x;
-      },
-      (x) => {
-        error?.(x);
-        done?.();
-        throw x;
-      }
-    );
-  };

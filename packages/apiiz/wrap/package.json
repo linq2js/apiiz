@@ -1,0 +1,4 @@
+{
+  "main": "../dist/tsc/wrap.js",
+  "types": "../dist/tsc/wrap.d.ts"
+}

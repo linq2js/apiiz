@@ -1,9 +1,11 @@
-import { define, on, use } from "./main";
+import { define, use } from "./main";
 import { rest } from "./rest";
 import { graphql } from "./graphql";
 import { debounce } from "./concurrency";
+import { Dictionary, Resolver } from "./types";
+import { loader } from "./loader";
+import { on } from "./on";
 import gql from "graphql-tag";
-import { Dictionary, Dispatcher, Middleware } from "./types";
 
 const delay = (ms: number = 0) =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -43,28 +45,32 @@ test("graphql api", async () => {
   await expect(api.get(1).then((x) => x.id)).resolves.toBe(1);
 });
 
-test("middleware", async () => {
+test("highOrderResolver", async () => {
   const cacheStorage: Dictionary = {};
   const cache =
-    <P>(keyFactory: (payload: P) => string): Middleware<P> =>
-    () => {
-      return ((next: Dispatcher) => (payload: any) => {
+    <P, R>(
+      resolver: Resolver<P, R>,
+      keyFactory: (payload: P) => string
+    ): Resolver<P, R> =>
+    (context) => {
+      const dispatcher = resolver(context);
+      return (payload) => {
         const key = keyFactory(payload);
         if (!cacheStorage[key]) {
           // the origin api and store the result
-          cacheStorage[key] = next(payload);
+          cacheStorage[key] = dispatcher(payload);
         }
         return cacheStorage[key];
-      }) as any;
+      };
     };
   const api = define({
     getUserById: use(
       rest<number>("https://jsonplaceholder.typicode.com/todos/{id}", {
         params: (id) => ({ id }),
-      }),
-      cache((payload) => payload.toString())
-    ),
+      })
+    ).with(cache, (payload) => payload.toString()),
   });
+
   const p1 = api.getUserById(1);
   const p2 = api.getUserById(1);
   const p3 = api.getUserById(2);
@@ -78,16 +84,34 @@ test("debounce", async () => {
   let done = 0;
   const api = define({
     getUserById: use(
-      rest<number>("https://jsonplaceholder.typicode.com/todos/{id}", {
-        params: (id) => ({ id }),
-      }),
-      on({ done: () => done++ }),
-      debounce(10)
-    ),
+      rest<number, { id: number }>(
+        "https://jsonplaceholder.typicode.com/todos/{id}",
+        { params: (id) => ({ id }) }
+      )
+    )
+      .with(on, { done: () => done++ })
+      .with(debounce, 10),
   });
+
   api.getUserById(1);
   const p1 = api.getUserById(1);
   expect(done).toBe(0);
   await expect(p1.then((x) => x.id)).resolves.toBe(1);
   expect(done).toBe(1);
+});
+
+test("loader", async () => {
+  type User = { id: number };
+  const api = define({
+    getUserById: loader(
+      rest<number[], User[]>("https://jsonplaceholder.typicode.com/users"),
+      { remap: (user, id) => user.id === id }
+    ),
+  });
+  const u1 = api.getUserById(1);
+  const u2 = api.getUserById(3);
+  const u3 = api.getUserById(1);
+  await expect(u1.then((x) => x.id)).resolves.toBe(1);
+  await expect(u2.then((x) => x.id)).resolves.toBe(3);
+  await expect(u3.then((x) => x.id)).resolves.toBe(1);
 });

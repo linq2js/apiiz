@@ -19,7 +19,10 @@
     "loader",
     "graphql",
     "concurrency",
-    "rest"
+    "rest",
+    "on",
+    "transform",
+    "wrap"
   ],
   "keywords": [],
   "dependencies": {

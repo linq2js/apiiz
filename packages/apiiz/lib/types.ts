@@ -2,7 +2,7 @@ export interface Configs {
   http?: HttpConfigs;
   onError?(error: ErrorBase): void;
   dismissErrors?: boolean;
-  middleware?: Middleware[];
+  hor?: HighOrderResolver[];
   [key: string]: any;
 }
 
@@ -55,13 +55,6 @@ export interface HttpConfigs<P = any> {
 }
 
 /**
- * API Middleware
- */
-export type Middleware<P = any, R = any> = (
-  context: Context
-) => (next: Dispatcher<P, R>) => Dispatcher<P, R>;
-
-/**
  * API Mappings
  */
 export type Mappings<T> = {
@@ -78,6 +71,24 @@ export type Resolver<P = any, R = any> = (context: Context) => Dispatcher<P, R>;
 
 export type Dictionary<T = any> = { [key: string]: T };
 
-export type Dispatcher<P = any, R = any> = P extends undefined
-  ? (payload?: P) => Promise<R>
-  : (payload: P) => Promise<R>;
+export type Dispatcher<P = any, R = any> = (
+  payload: P extends undefined ? never : P
+) => Promise<R>;
+
+export type Use<PSource, RSource> = Resolver<PSource, RSource> & {
+  with<PNext, RNext, A extends any[]>(
+    highOrderResolver: HighOrderResolver<PSource, RSource, PNext, RNext, A>,
+    ...args: A
+  ): Use<PNext, RNext>;
+};
+
+export type HighOrderResolver<
+  PSource = any,
+  RSource = any,
+  PNext = PSource,
+  RNext = RSource,
+  A extends any[] = []
+> = (
+  resolver: Resolver<PSource, RSource>,
+  ...args: A
+) => Resolver<PNext, RNext>;

@@ -1,13 +1,12 @@
 import {
   Dictionary,
   ErrorBase,
-  foreverPromise,
   HttpConfigs,
   HttpMethod,
   OptionBuilder,
   Resolver,
 } from "./main";
-import { getOption } from "./utils";
+import { foreverPromise, getOption } from "./utils";
 
 export interface RestOptions<P = any> extends Omit<HttpConfigs<P>, "baseUrl"> {
   method?: HttpMethod;
@@ -26,7 +25,7 @@ export class RestError extends ErrorBase {
 
 export interface RestConfigs extends RestOptions, HttpConfigs {}
 
-const apiCreator =
+const create =
   <P = void, R = any>(url: string, options?: RestOptions<P>): Resolver<P, R> =>
   ({ configs, http }) => {
     const restConfigs = configs.$rest as RestConfigs | undefined;
@@ -75,6 +74,23 @@ const apiCreator =
     }) as any;
   };
 
-const configsBuilder = (configs: RestConfigs) => ({ $rest: configs });
+const configure = (configs: RestConfigs) => ({ $rest: configs });
 
-export const rest = Object.assign(apiCreator, { configs: configsBuilder });
+const createRestMethod =
+  (method: HttpMethod) =>
+  <P, R>(url: string, options: Omit<RestOptions<P>, "method">) =>
+    create<P, R>(url, { method: method, ...options });
+
+/**
+ * create a dispatcher that works with RESTful API
+ */
+export const rest = Object.assign(create, {
+  configs: configure,
+  post: createRestMethod("post"),
+  patch: createRestMethod("patch"),
+  put: createRestMethod("put"),
+  get: createRestMethod("get"),
+  delete: createRestMethod("delete"),
+  options: createRestMethod("options"),
+  head: createRestMethod("head"),
+});

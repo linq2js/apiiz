@@ -3,11 +3,9 @@ import {
   Dictionary,
   Resolver,
   OptionBuilder,
-  getPropValue,
   ErrorBase,
-  foreverPromise,
 } from "./main";
-import { getOption } from "./utils";
+import { foreverPromise, getOption, getPropValue } from "./utils";
 
 export interface GraphQLConfigs extends HttpConfigs, GraphQLOptions {}
 
@@ -51,10 +49,7 @@ export interface GraphQLApiCreator {
   ): Resolver<P, R>;
 }
 
-const apiCreator: GraphQLApiCreator = (
-  query: any,
-  ...args: any[]
-): Resolver => {
+const create: GraphQLApiCreator = (query: any, ...args: any[]): Resolver => {
   if (typeof query !== "string") query = getQueryText(query) ?? "";
   let path: string | undefined;
   let options: GraphQLOptions | undefined;
@@ -121,6 +116,9 @@ const apiCreator: GraphQLApiCreator = (
   };
 };
 
-const configsBuilder = (configs: GraphQLConfigs) => ({ $graphql: configs });
+const configure = (configs: GraphQLConfigs) => ({ $graphql: configs });
 
-export const graphql = Object.assign(apiCreator, { configs: configsBuilder });
+/**
+ * create a dispatcher that works with GraphQL API
+ */
+export const graphql = Object.assign(create, { configs: configure });

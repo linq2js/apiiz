@@ -1,0 +1,4 @@
+{
+  "main": "../dist/tsc/transform.js",
+  "types": "../dist/tsc/transform.d.ts"
+}

@@ -25,7 +25,7 @@ yarn add apiiz
 1. REST API supported
 1. GraphQL API supported
 1. Dataloader supported
-1. Middleare supported
+1. High Order Resolver supported
 1. Fully Typescript supported
 
 ## Usages
@@ -120,24 +120,23 @@ const api = define({
 apiiz uses dataloader package for handling batch requests. Let say you have an API get users by id list
 
 ```js
-import { transform } from "apiiz";
 import { loader } from "apiiz/loader";
 import { rest } from "apiiz/rest";
 const api = define({
   configs: { http: { baseUrl: "https://yourserver.com/api" } },
   // the url will prepend baseUrl from http configs
   getUserById: loader(
-    // we are not sure the user list that is returned from server has same order with id list
     // so we use transform resolver to re-order the result
-    transform(
-      rest("/getUsers", {
-        method: "post",
-        // passing ids to request body
-        body: (ids) => ({ ids }),
-      }),
-      (users, ids) => ids.map((id) => users.find((x) => x.id === id))
-    )
-    // passing dataloader options
+    rest("/getUsers", {
+      method: "post",
+      // passing ids to request body
+      body: (ids) => ({ ids }),
+    }),
+    {
+      // if you are not sure the user list that is returned from server has same order with id, use remap() to make it right
+      remap: (user, id) => user.id === id,
+      // other dataloader options
+    }
   ),
 });
 
@@ -171,38 +170,44 @@ const api = define({
 });
 ```
 
-### Using middleware
+### Using hight order resolver (HOR)
 
-apiiz provides middleware machanism, where you can control requests working flow with ease
+apiiz provides HOR machanism, where you can control requests working flow with ease
 
 ```js
 import { use, define } from "apiiz";
 import { rest } from "apiiz/rest";
 
-// simple cache middleware
-const cache = (keyFactory) => (context) => {
+// simple cache high order rsolver
+const cache = (originalResolver, keyFactory) => (context) => {
+  const originalDispatcher = originalResolver(context);
   const cacheStorage = context.__cache || (context.__cache = {});
-  return (next) => (payload) => {
+  // return a new dispatcher
+  return (payload) => {
+    // generate the cache key
     const key = keyFactory(payload);
+    // if the key is not exist in the cache, call originalDispatcher to get result and store the result to the cache
     if (!cacheStorage[key]) {
-      // the origin api and store the result
-      cacheStorage[key] = next(payload);
+      cacheStorage[key] = originalDispatcher(payload);
     }
     return cacheStorage[key];
   };
 };
 
 const api = define({
-  getUserById: use(
-    rest("/getUserById"),
-    // generate cache key according to api payload
-    cache((payload) => `getUserById:${payload}`)
+  getUserById: use(rest("/getUserById")).with(
+    cache,
+    // this arg will pass to cache()
+    (payload) =>
+      // generate cache key according to api payload
+      `getUserById:${payload}`
   ),
 });
 
-api.getUserById(1);
-api.getUserById(1);
-api.getUserById(1);
+const p1 = api.getUserById(1);
+const p1 = api.getUserById(1);
+const p1 = api.getUserById(1);
+console.log(p1 === p2); // true
 // only one request sent
 ```
 

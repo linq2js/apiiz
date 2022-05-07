@@ -1,0 +1,4 @@
+{
+  "main": "../dist/tsc/on.js",
+  "types": "../dist/tsc/on.d.ts"
+}
