@@ -26,6 +26,7 @@ yarn add apiiz
 1. GraphQL API supported
 1. Dataloader supported
 1. High Order Resolver supported
+1. Highly extensible
 1. Fully Typescript supported
 
 ## Usages
@@ -102,12 +103,10 @@ const api = define({
 const api = define({
   configs: {
     // headers builder
-    headers(payload) {
-      return {
-        // pass access token that is saved in localStorage
-        authorization: localStorage.getItem("token"),
-      };
-    },
+    headers: () => ({
+      // pass access token that is saved in localStorage
+      authorization: localStorage.getItem("token"),
+    }),
     http: { baseUrl: "https://yourserver.com/api" },
   },
   // the url will prepend baseUrl from http configs
@@ -126,7 +125,6 @@ const api = define({
   configs: { http: { baseUrl: "https://yourserver.com/api" } },
   // the url will prepend baseUrl from http configs
   getUserById: loader(
-    // so we use transform resolver to re-order the result
     rest("/getUsers", {
       method: "post",
       // passing ids to request body
