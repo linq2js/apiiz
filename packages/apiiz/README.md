@@ -261,7 +261,7 @@ import { memory } from "apiiz/memory";
 import { validate } from "./enhancers/validate";
 import Joi from "joi";
 
-// create a simple route register enhancer
+// create a simple enhancer for route registration
 const route = (resolver, method, path, payloadSelector) => {
   return (context) => {
     // get express app object from configs
@@ -291,9 +291,38 @@ const api = define({
       { remap: (user, id) => user.id === id }
     )
   )
+    // validate payload
     .with(validate, Joi.number())
     // the route enhancer must be last one to make sure it can receive all enhanced results of previous ones
     .with(route, "get", "/user/:id", (req) => req.params.id),
+});
+```
+
+### Handle concurrency
+
+```js
+import { debounce } from "apiiz/concurrency";
+
+const api = define({
+  updateUserProfile: enhance(
+    // rest API creator also provides shorthands for HTTP methods: put get post delete options patch head
+    rest.post("/user/{id}/update", { params: (id) => ({ id }) })
+  )
+    // use debounce enhancer to delay API call in 300ms
+    .with(debounce, 300),
+});
+```
+
+Concurrency module also provide throttle() enhancer
+
+```js
+import { throttle } from "apiiz/concurrency";
+
+const api = define({
+  trackUserActivity: enhance(
+    // rest API creator also provides shorthands for HTTP methods: put get post delete options patch head
+    rest.post("/user/{id}/track", { params: (id) => ({ id }) })
+  ).with(throttle, 300),
 });
 ```
 
