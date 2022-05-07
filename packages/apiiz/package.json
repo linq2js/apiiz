@@ -22,7 +22,8 @@
     "rest",
     "on",
     "transform",
-    "wrap"
+    "memory",
+    "relation"
   ],
   "keywords": [],
   "dependencies": {

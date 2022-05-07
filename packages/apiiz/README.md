@@ -25,13 +25,13 @@ yarn add apiiz
 1. REST API supported
 1. GraphQL API supported
 1. Dataloader supported
-1. High Order Resolver supported
+1. Enhancers supported
 1. Highly extensible
 1. Fully Typescript supported
 
 ## Usages
 
-### Defining simple REST API
+### Defining REST API
 
 ```js
 import { define } from "apiiz";
@@ -168,15 +168,15 @@ const api = define({
 });
 ```
 
-### Using hight order resolver (HOR)
+### Using enhancers
 
-apiiz provides HOR machanism, where you can control requests working flow with ease
+apiiz provides enhancer machanism, where you can control requests working flow with ease
 
 ```js
 import { use, define } from "apiiz";
 import { rest } from "apiiz/rest";
 
-// simple cache high order rsolver
+// simple cache enhancer
 const cache = (originalResolver, keyFactory) => (context) => {
   const originalDispatcher = originalResolver(context);
   const cacheStorage = context.__cache || (context.__cache = {});
@@ -193,7 +193,7 @@ const cache = (originalResolver, keyFactory) => (context) => {
 };
 
 const api = define({
-  getUserById: use(rest("/getUserById")).with(
+  getUserById: enhance(rest("/getUserById")).with(
     cache,
     // this arg will pass to cache()
     (payload) =>
@@ -207,6 +207,94 @@ const p1 = api.getUserById(1);
 const p1 = api.getUserById(1);
 console.log(p1 === p2); // true
 // only one request sent
+```
+
+### Validating payload
+
+You can create validate() enhancer that uses Joi/Yup for validating API payload
+
+```js
+import { define, enhancer, enhance } from "apiiz";
+import { memory } from "apiiz/memory";
+import Joi from "joi";
+
+// a validate fn retrieves Joi schema
+const validate = (resolver, schema) =>
+  // using enhancer() to create new enhancer quickly
+  enhancer(resolver, (context, dispatcher, payload) => {
+    // validate the payload and correct payload types if possible
+    const result = schema.validate(payload, {
+      convert: true,
+      abortEarly: true,
+    });
+    // throw error if any
+    if (result.error) throw result.error;
+    // using the validated value as new payload
+    return dispatcher(result.value);
+  });
+const database = [];
+const api = define({
+  addNumber: enhance(
+    // create a memory API, just push a value to database object
+    memory((value) => database.push(value))
+  ).with(
+    validate,
+    // payload must be number
+    Joi.number()
+  ),
+});
+
+api.addNumber(1);
+api.addNumber(2);
+api.addNumber("3"); // '3' will be converted to 3
+api.addNumber("abcdef"); // an error will be thrown
+```
+
+### Server APIs
+
+apiiz can be used for both backend and frontend, you can take advantages of data batch loading, caching, validating
+
+```js
+import prisma from "./prisma";
+import { define, enhancer, enhance } from "apiiz";
+import { memory } from "apiiz/memory";
+import { validate } from "./enhancers/validate";
+import Joi from "joi";
+
+// create a simple route register enhancer
+const route = (resolver, method, path, payloadSelector) => {
+  return (context) => {
+    // get express app object from configs
+    const app = context.configs.app;
+    const dispatcher = resolver(dispatcher);
+    app[method]((req, res) => {
+      // get payload from req
+      const payload = payloadSelector(req);
+      // dispatch API body and send the result/error to client
+      dispatcher(payload).then(
+        (result) => res.json(result),
+        (error) => res.status(400).json(error)
+      );
+    });
+    return dispatcher;
+  };
+};
+
+const api = define({
+  getUser: enhance(
+    // using loader for batch loading
+    loader(
+      // you can create new prisma API creator in this case
+      // we use memory for basic example
+      memory((ids) => prisma.user.findMany({ where: { id: { in: ids } } })),
+      // the users that returned from prisma might has wrong order, so need to re-order those users
+      { remap: (user, id) => user.id === id }
+    )
+  )
+    .with(validate, Joi.number())
+    // the route enhancer must be last one to make sure it can receive all enhanced results of previous ones
+    .with(route, "get", "/user/:id", (req) => req.params.id),
+});
 ```
 
 ## API References

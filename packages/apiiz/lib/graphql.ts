@@ -2,7 +2,7 @@ import {
   HttpConfigs,
   Dictionary,
   Resolver,
-  OptionBuilder,
+  OptionFactory,
   ErrorBase,
 } from "./main";
 import { foreverPromise, getOption, getPropValue } from "./utils";
@@ -11,7 +11,7 @@ export interface GraphQLConfigs extends HttpConfigs, GraphQLOptions {}
 
 export interface GraphQLOptions<P = any> extends Omit<HttpConfigs, "baseUrl"> {
   url?: string;
-  vars?: OptionBuilder<P, Dictionary>;
+  vars?: OptionFactory<P, Dictionary>;
   onError?(error: GraphQLError): void;
   dismissErrors?: boolean;
 }
@@ -26,24 +26,26 @@ export class GraphQLError extends ErrorBase {
   }
 }
 
+export type Query = string | {};
+
 export interface GraphQLApiCreator {
-  <P = void | any, R = any>(query: any, options?: GraphQLOptions<P>): Resolver<
-    P,
-    R
-  >;
   <P = void | any, R = any>(
-    query: any,
+    query: OptionFactory<P, Query>,
+    options?: GraphQLOptions<P>
+  ): Resolver<P, R>;
+  <P = void | any, R = any>(
+    query: Query,
     vars: (payload: P) => Dictionary
   ): Resolver<P, R>;
 
   <P = void, R = any>(
-    query: any,
+    query: OptionFactory<P, Query>,
     path: string,
     vars: (payload: P) => Dictionary
   ): Resolver<P, R>;
 
   <P = void, R = any>(
-    query: any,
+    query: OptionFactory<P, Query>,
     path: string,
     options?: GraphQLOptions<P>
   ): Resolver<P, R>;
@@ -84,7 +86,7 @@ const create: GraphQLApiCreator = (query: any, ...args: any[]): Resolver => {
           url: `${baseUrl}${options?.url ?? ""}`,
           method: "post",
           headers,
-          body: { query, variables },
+          body: { query: getOption(query, payload), variables },
         });
 
         const graphqlData = res.data;

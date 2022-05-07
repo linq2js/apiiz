@@ -1,10 +1,13 @@
-import { define, use } from "./main";
+import { define, enhance, enhancer } from "./main";
 import { rest } from "./rest";
 import { graphql } from "./graphql";
 import { debounce } from "./concurrency";
 import { Dictionary, Resolver } from "./types";
 import { loader } from "./loader";
+import { memory } from "./memory";
+import { include } from "./relation";
 import { on } from "./on";
+import Joi, { Schema } from "joi";
 import gql from "graphql-tag";
 
 const delay = (ms: number = 0) =>
@@ -64,7 +67,7 @@ test("highOrderResolver", async () => {
       };
     };
   const api = define({
-    getUserById: use(
+    getUserById: enhance(
       rest<number>("https://jsonplaceholder.typicode.com/todos/{id}", {
         params: (id) => ({ id }),
       })
@@ -83,7 +86,7 @@ test("highOrderResolver", async () => {
 test("debounce", async () => {
   let done = 0;
   const api = define({
-    getUserById: use(
+    getUserById: enhance(
       rest<number, { id: number }>(
         "https://jsonplaceholder.typicode.com/todos/{id}",
         { params: (id) => ({ id }) }
@@ -114,4 +117,68 @@ test("loader", async () => {
   await expect(u1.then((x) => x.id)).resolves.toBe(1);
   await expect(u2.then((x) => x.id)).resolves.toBe(3);
   await expect(u3.then((x) => x.id)).resolves.toBe(1);
+});
+
+test("include", async () => {
+  type Todo = { id: number; userId: number };
+  type User = { id: number; todos?: Todo[] };
+
+  const users: User[] = [{ id: 1 }, { id: 2 }];
+
+  const todos: Todo[] = [
+    { id: 1, userId: 1 },
+    { id: 2, userId: 1 },
+    { id: 3, userId: 2 },
+  ];
+
+  const api = define({
+    getTodo: loader(
+      memory((ids: number[]) =>
+        ids.map((id) => todos.find((x) => x.id === id)!)
+      )
+    ),
+    getUser: enhance(
+      memory((id: number) => users.find((x) => x.id === id)!)
+    ).with(include, (load) =>
+      load.value(
+        "id",
+        "todos",
+        memory((userId: number) => todos.filter((x) => x.userId === userId))
+      )
+    ),
+  });
+  const user1 = await api.getUser(1);
+  const user2 = await api.getUser(2);
+
+  expect(user1.id).toBe(1);
+  expect(user1.todos?.[0]?.id).toBe(1);
+  expect(user1.todos?.[1]?.id).toBe(2);
+  expect(user2.id).toBe(2);
+  expect(user2.todos?.[0]?.id).toBe(3);
+});
+
+test("validation with enhancer", async () => {
+  const validate = <P, R>(resolver: Resolver<P, R>, schema: Schema) =>
+    enhancer(resolver, (_, dispatcher, payload) => {
+      const result = schema.validate(payload, {
+        convert: true,
+        abortEarly: true,
+      });
+      if (result.error) throw result.error;
+      return dispatcher(result.value);
+    });
+  const results: number[] = [];
+  const api = define({
+    addNumber: enhance(memory((value: any) => results.push(value))).with(
+      validate,
+      Joi.number()
+    ),
+  });
+  await api.addNumber(1);
+  await api.addNumber(2);
+  // should convert value to number
+  await api.addNumber("3");
+  expect(results).toEqual([1, 2, 3]);
+  await expect(api.addNumber(true)).rejects.toThrowError();
+  expect(results).toEqual([1, 2, 3]);
 });

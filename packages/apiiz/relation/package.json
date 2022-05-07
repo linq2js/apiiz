@@ -1,0 +1,4 @@
+{
+  "main": "../dist/tsc/relation.js",
+  "types": "../dist/tsc/relation.d.ts"
+}

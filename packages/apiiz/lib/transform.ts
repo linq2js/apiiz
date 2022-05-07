@@ -1,18 +1,18 @@
-import { Context, Resolver } from "./types";
-import { getPropValue } from "./utils";
+import { Resolver } from "./types";
 
+/**
+ * transform from source value to target value
+ * @param source
+ * @param target
+ * @returns
+ */
 export const transform =
-  <P, R, T>(
-    resolver: Resolver<P, R>,
-    transformFn: ((result: R, payload: P, context: Context) => T) | string
-  ): Resolver<P, T> =>
+  <P, R, T>(source: Resolver<P, R>, target: Resolver<R, T>): Resolver<P, T> =>
   (context) => {
-    const dispatcher = resolver(context);
+    const sourceDispatcher = source(context);
+    const targetDispatcher = target(context);
     return async (payload) => {
-      const result = await dispatcher(payload);
-      if (typeof transformFn === "function") {
-        return transformFn(result, payload, context);
-      }
-      return getPropValue(result, transformFn);
+      const result = await sourceDispatcher(payload);
+      return targetDispatcher(result as any);
     };
   };

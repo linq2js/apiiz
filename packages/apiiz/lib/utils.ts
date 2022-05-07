@@ -1,8 +1,8 @@
-import type { OptionBuilder } from "./types";
+import type { OptionFactory } from "./types";
 
 export const foreverPromise = new Promise<any>(() => {});
 
-export const getOption = <P>(builder: OptionBuilder<P>, payload: P) =>
+export const getOption = <P>(builder: OptionFactory<P>, payload: P) =>
   typeof builder === "function" ? builder(payload) : builder;
 
 export const getPropValue = (obj: any, path: string) =>

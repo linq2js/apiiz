@@ -3,7 +3,7 @@ import {
   ErrorBase,
   HttpConfigs,
   HttpMethod,
-  OptionBuilder,
+  OptionFactory,
   Resolver,
 } from "./main";
 import { foreverPromise, getOption } from "./utils";
@@ -11,9 +11,9 @@ import { foreverPromise, getOption } from "./utils";
 export interface RestOptions<P = any> extends Omit<HttpConfigs<P>, "baseUrl"> {
   method?: HttpMethod;
   onError?(error: RestError): void;
-  params?: OptionBuilder<P, Dictionary>;
-  query?: OptionBuilder<P, Dictionary>;
-  body?: OptionBuilder<P>;
+  params?: OptionFactory<P, Dictionary>;
+  query?: OptionFactory<P, Dictionary>;
+  body?: OptionFactory<P>;
   dismissErrors?: boolean;
 }
 
@@ -26,7 +26,10 @@ export class RestError extends ErrorBase {
 export interface RestConfigs extends RestOptions, HttpConfigs {}
 
 const create =
-  <P = void, R = any>(url: string, options?: RestOptions<P>): Resolver<P, R> =>
+  <P = void, R = any>(
+    url: OptionFactory<P, string>,
+    options?: RestOptions<P>
+  ): Resolver<P, R> =>
   ({ configs, http }) => {
     const restConfigs = configs.$rest as RestConfigs | undefined;
     const baseUrl = restConfigs?.baseUrl ?? configs.http?.baseUrl ?? "";
@@ -46,7 +49,7 @@ const create =
 
       try {
         const res = await http({
-          url: `${baseUrl}${url}`.replace(
+          url: `${baseUrl}${getOption(url, payload)}`.replace(
             /\{([^{}]+)\}/g,
             (_, k) => params[k] ?? ""
           ),

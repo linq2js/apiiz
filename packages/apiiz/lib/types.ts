@@ -2,11 +2,11 @@ export interface Configs {
   http?: HttpConfigs;
   onError?(error: ErrorBase): void;
   dismissErrors?: boolean;
-  hor?: HighOrderResolver[];
+  enhancers?: Enhancer[];
   [key: string]: any;
 }
 
-export type OptionBuilder<P = void, T = any> = T | ((payload: P) => T);
+export type OptionFactory<P = void, T = any> = T | ((payload: P) => T);
 
 export type HttpMethod =
   | "get"
@@ -26,6 +26,8 @@ export abstract class ErrorBase extends Error {
 export interface Context {
   configs: Configs;
   http: HttpDriver;
+  shared: Map<any, any>;
+  mappings: any;
 }
 
 export interface HttpOptions {
@@ -47,7 +49,7 @@ export interface HttpConfigs<P = any> {
   /**
    * Default headers for all HTTP requests
    */
-  headers?: OptionBuilder<P, Dictionary>;
+  headers?: OptionFactory<P, Dictionary>;
   /**
    * Custom HTTP driver
    */
@@ -77,12 +79,12 @@ export type Dispatcher<P = any, R = any> = (
 
 export type Use<PSource, RSource> = Resolver<PSource, RSource> & {
   with<PNext, RNext, A extends any[]>(
-    highOrderResolver: HighOrderResolver<PSource, RSource, PNext, RNext, A>,
+    enhancer: Enhancer<PSource, RSource, PNext, RNext, A>,
     ...args: A
   ): Use<PNext, RNext>;
 };
 
-export type HighOrderResolver<
+export type Enhancer<
   PSource = any,
   RSource = any,
   PNext = PSource,
@@ -92,3 +94,7 @@ export type HighOrderResolver<
   resolver: Resolver<PSource, RSource>,
   ...args: A
 ) => Resolver<PNext, RNext>;
+
+export type Ref<T> = { current: T };
+
+export type ItemOf<A> = A extends Array<infer T> ? T : never;
