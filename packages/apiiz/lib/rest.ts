@@ -6,6 +6,7 @@ import {
   OptionFactory,
   Resolver,
 } from "./main";
+import { CancelToken } from "./types";
 import { foreverPromise, getOption } from "./utils";
 
 export interface RestOptions<P = any> extends Omit<HttpConfigs<P>, "baseUrl"> {
@@ -15,6 +16,7 @@ export interface RestOptions<P = any> extends Omit<HttpConfigs<P>, "baseUrl"> {
   query?: OptionFactory<P, Dictionary>;
   body?: OptionFactory<P>;
   dismissErrors?: boolean;
+  token?: CancelToken;
 }
 
 export class RestError extends ErrorBase {
@@ -23,7 +25,7 @@ export class RestError extends ErrorBase {
   }
 }
 
-export interface RestConfigs extends RestOptions, HttpConfigs {}
+export interface RestConfigs extends Omit<RestOptions, "token">, HttpConfigs {}
 
 const create =
   <P = void, R = any>(
@@ -57,6 +59,7 @@ const create =
           headers,
           query,
           body,
+          token: options?.token,
         });
 
         return res.data as R;

@@ -6,6 +6,8 @@ import {
   Resolver,
   Dispatcher,
   Enhance,
+  CancelToken,
+  Cancellable,
 } from "./types";
 
 export * from "./types";
@@ -26,6 +28,7 @@ export const define: Define = ({ configs = {}, ...schema }): any => {
     };
 
     let resolver: any = schema[key];
+    const token = resolver.token as CancelToken | undefined;
 
     if (hasEnhancer) {
       resolver = enhancers.reduce((prev, x) => prev.with(x), enhance(resolver));
@@ -34,6 +37,7 @@ export const define: Define = ({ configs = {}, ...schema }): any => {
     const dispatcher = resolver(context);
 
     mappings[key] = (payload: any) => {
+      token?.reset();
       // make sure the dispatcher always returns promise object
       try {
         const result = dispatcher(payload);
@@ -64,6 +68,18 @@ export const enhance: Enhance = (resolver: Resolver, fn?: any): any => {
       return enhance(hor(resolver, ...args)) as any;
     },
   });
+};
+
+export const cancellable: Cancellable = (...args: any[]) => {
+  let token: CancelToken;
+  let resolver: Resolver;
+  if (args[1]) {
+    [resolver, token] = args;
+  } else {
+    token = cancelToken();
+    resolver = args[0](token);
+  }
+  return Object.assign((context: Context) => resolver(context), { token });
 };
 
 /**
@@ -169,3 +185,35 @@ export interface ResolverGroup<M extends "all" | "race"> {
 export const all = createResolverGroup("all");
 
 export const race = createResolverGroup("race");
+
+const isAbortControllerSupported = typeof AbortController !== "undefined";
+export const cancelToken = (): CancelToken => {
+  let cancelled = false;
+  let abortController: AbortController | undefined;
+
+  const reset = () => {
+    cancelled = false;
+    abortController = undefined;
+  };
+
+  reset();
+
+  return {
+    reset,
+    isCancelled() {
+      return cancelled;
+    },
+    signal() {
+      if (!abortController && isAbortControllerSupported) {
+        abortController = new AbortController();
+        if (cancelled) {
+          abortController.abort();
+        }
+      }
+      return abortController?.signal;
+    },
+    cancel() {
+      cancelled = true;
+    },
+  };
+};

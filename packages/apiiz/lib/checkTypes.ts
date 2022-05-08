@@ -1,4 +1,4 @@
-import { define, enhance } from "./main";
+import { define, enhance, cancellable, cancelToken } from "./main";
 import { include } from "./relation";
 import { rest } from "./rest";
 import { Resolver } from "./types";
@@ -22,10 +22,12 @@ const getUser: Resolver<number, User> = enhance(
     .multiple("todoIds", "todos", getTodo)
     .single("maangerId", "manager", getUser)
 );
-
+const token = cancelToken();
 const api = define({
   getTodoById: getTodo,
   getUserById: getUser,
+  cancallableApi1: enhance(getUser).with(cancellable, token),
+  cancallableApi2: cancellable((token) => rest("", { token })),
 });
 
 api.getTodoById(1);

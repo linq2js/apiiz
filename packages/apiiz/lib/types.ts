@@ -36,6 +36,7 @@ export interface HttpOptions {
   headers?: Dictionary;
   query?: Dictionary;
   body?: any;
+  token?: CancelToken;
 }
 
 export type HttpDriver = (options: HttpOptions) => Promise<HttpResult>;
@@ -62,6 +63,8 @@ export interface HttpConfigs<P = any> {
 export type Mappings<T> = {
   [key in keyof T]: T[key] extends Resolver<infer P, infer R>
     ? Dispatcher<P, R>
+    : T[key] extends CancellableResolver<infer P, infer R>
+    ? (payload: P) => Promise<R> & { cancel(): void }
     : never;
 };
 
@@ -111,3 +114,23 @@ export type Enhancer<
 export type Ref<T> = { current: T };
 
 export type ItemOf<A> = A extends Array<infer T> ? T : never;
+
+export interface CancelToken {
+  reset(): void;
+  isCancelled(): boolean;
+  cancel(): void;
+  signal(): AbortController["signal"] | undefined;
+}
+
+export interface Cancellable {
+  <P, R>(fn: (token: CancelToken) => Resolver<P, R>): CancellableResolver<P, R>;
+  /**
+   * enhancer
+   */
+  <P, R>(resolver: Resolver<P, R>, token: CancelToken): CancellableResolver<
+    P,
+    R
+  >;
+}
+
+export type CancellableResolver<P, R> = Resolver<P, R> & { token: CancelToken };

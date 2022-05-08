@@ -5,15 +5,19 @@ import {
   OptionFactory,
   ErrorBase,
 } from "./main";
+import { CancelToken } from "./types";
 import { foreverPromise, getOption, getPropValue } from "./utils";
 
-export interface GraphQLConfigs extends HttpConfigs, GraphQLOptions {}
+export interface GraphQLConfigs
+  extends HttpConfigs,
+    Omit<GraphQLOptions, "token"> {}
 
 export interface GraphQLOptions<P = any> extends Omit<HttpConfigs, "baseUrl"> {
   url?: string;
   vars?: OptionFactory<P, Dictionary>;
   onError?(error: GraphQLError): void;
   dismissErrors?: boolean;
+  token?: CancelToken;
 }
 
 function getQueryText(doc: any) {
@@ -87,6 +91,7 @@ const create: GraphQLApiCreator = (query: any, ...args: any[]): Resolver => {
           method: "post",
           headers,
           body: { query: getOption(query, payload), variables },
+          token: options?.token,
         });
 
         const graphqlData = res.data;
