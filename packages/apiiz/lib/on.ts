@@ -11,18 +11,21 @@ export const on =
   (context) => {
     const { success, error, done } = events;
     const dispatcher = resolver(context);
-    return (payload) => {
-      return dispatcher(payload).then(
-        (x) => {
-          success?.(x);
-          done?.();
-          return x;
-        },
-        (x) => {
-          error?.(x);
-          done?.();
-          throw x;
+    return async (payload) => {
+      let ee: any;
+      let result: any;
+      try {
+        return (result = await dispatcher(payload));
+      } catch (e) {
+        ee = e;
+        throw ee;
+      } finally {
+        if (ee) {
+          error?.(ee);
+        } else {
+          success?.(result);
         }
-      );
+        done?.();
+      }
     };
   };

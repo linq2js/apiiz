@@ -33,12 +33,10 @@ const create = <P, R>(
 
     const dataLoader =
       dataLoaderRef?.current ??
-      new DataLoader((payload: readonly P[]) => {
-        const data = dispatcher(payload as P[]);
+      new DataLoader(async (payload: readonly P[]) => {
+        const data = await dispatcher(payload as P[]);
         if (remap) {
-          return data.then((results) =>
-            payload.map((p) => results.find((r) => remap(r, p)))
-          );
+          return payload.map((p) => data.find((r) => remap(r, p)));
         }
         return data;
       }, finalOptions);

@@ -73,16 +73,29 @@ export type Resolver<P = any, R = any> = (context: Context) => Dispatcher<P, R>;
 
 export type Dictionary<T = any> = { [key: string]: T };
 
-export type Dispatcher<P = any, R = any> = (
-  payload: P extends undefined ? never : P
-) => Promise<R>;
+export type Dispatcher<P = any, R = any> = (payload: P) => Promise<R>;
 
-export type Use<PSource, RSource> = Resolver<PSource, RSource> & {
+export type EnhanceResult<PSource, RSource> = Resolver<PSource, RSource> & {
   with<PNext, RNext, A extends any[]>(
     enhancer: Enhancer<PSource, RSource, PNext, RNext, A>,
     ...args: A
-  ): Use<PNext, RNext>;
+  ): EnhanceResult<PNext, RNext>;
 };
+
+export interface Enhance {
+  /**
+   * create new enhancer from original resolver
+   * @param resolver
+   * @param fn enhance function
+   * @returns
+   */
+  <P, R, PN = P, RN = R>(
+    resolver: Resolver<P, R>,
+    fn: (context: Context, dispatcher: Dispatcher<P, R>, payload: PN) => RN
+  ): Resolver<PN, RN>;
+
+  <P, R>(resolver: Resolver<P, R>): EnhanceResult<P, R>;
+}
 
 export type Enhancer<
   PSource = any,

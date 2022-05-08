@@ -1,12 +1,11 @@
 import { Resolver } from "./types";
 
 /**
- * transform from source value to target value
  * @param source
  * @param target
  * @returns
  */
-export const transform =
+export const map =
   <P, R, T>(source: Resolver<P, R>, target: Resolver<R, T>): Resolver<P, T> =>
   (context) => {
     const sourceDispatcher = source(context);

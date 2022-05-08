@@ -4,6 +4,7 @@ import { rest } from "./rest";
 import { Resolver } from "./types";
 
 type Todo = { id: number; title: string };
+
 type User = {
   id: number;
   name: string;
@@ -17,7 +18,9 @@ const getTodo = rest<number, Todo>("");
 const getUser: Resolver<number, User> = enhance(
   rest<number, User>("/user/{id}", { params: (id) => ({ id }) })
 ).with(include, (load) =>
-  load.array("todoIds", "todos", getTodo).value("maangerId", "manager", getUser)
+  load
+    .multiple("todoIds", "todos", getTodo)
+    .single("maangerId", "manager", getUser)
 );
 
 const api = define({

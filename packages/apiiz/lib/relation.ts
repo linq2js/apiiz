@@ -1,7 +1,13 @@
 import { Resolver } from "./types";
 
 export interface LoadOptions<T> {
-  array<TKey extends keyof T, TInfo extends keyof T>(
+  /**
+   * load multiple values into specified prop
+   * @param key
+   * @param into
+   * @param resolver
+   */
+  multiple<TKey extends keyof T, TInfo extends keyof T>(
     key: TKey,
     into: TInfo,
     resolver: Resolver<
@@ -10,7 +16,13 @@ export interface LoadOptions<T> {
     >
   ): this;
 
-  value<TKey extends keyof T, TInfo extends keyof T>(
+  /**
+   * load single value into specified prop
+   * @param key
+   * @param into
+   * @param resolver
+   */
+  single<TKey extends keyof T, TInfo extends keyof T>(
     key: TKey,
     into: TInfo,
     resolver: Resolver<
@@ -20,6 +32,12 @@ export interface LoadOptions<T> {
   ): this;
 }
 
+/**
+ * load all relations
+ * @param resolver
+ * @param setup
+ * @returns
+ */
 export const include =
   <P, R>(
     resolver: Resolver<P, R>,
@@ -28,8 +46,9 @@ export const include =
   (context) => {
     const dispatcher = resolver(context);
     const loaders: ((result: any) => Promise<void>)[] = [];
+
     setup({
-      value(key, into, loader) {
+      single(key, into, loader) {
         const d = loader(context);
         loaders.push(async (result) => {
           const value = result?.[key];
@@ -38,7 +57,7 @@ export const include =
         });
         return this;
       },
-      array(key, into, loader) {
+      multiple(key, into, loader) {
         const d = loader(context);
         loaders.push(async (result) => {
           const values = result?.[key];

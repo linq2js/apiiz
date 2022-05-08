@@ -28,6 +28,7 @@ yarn add apiiz
 1. Enhancers supported
 1. Highly extensible
 1. Fully Typescript supported
+1. Relation loading supported
 
 ## Usages
 
@@ -214,14 +215,14 @@ console.log(p1 === p2); // true
 You can create validate() enhancer that uses Joi/Yup for validating API payload
 
 ```js
-import { define, enhancer, enhance } from "apiiz";
+import { define, enhance } from "apiiz";
 import { memory } from "apiiz/memory";
 import Joi from "joi";
 
 // a validate fn retrieves Joi schema
 const validate = (resolver, schema) =>
-  // using enhancer() to create new enhancer quickly
-  enhancer(resolver, (context, dispatcher, payload) => {
+  // using this overload of enhance() to create new enhancer quickly
+  enhance(resolver, (context, dispatcher, payload) => {
     // validate the payload and correct payload types if possible
     const result = schema.validate(payload, {
       convert: true,
@@ -256,7 +257,7 @@ apiiz can be used for both backend and frontend, you can take advantages of data
 
 ```js
 import prisma from "./prisma";
-import { define, enhancer, enhance } from "apiiz";
+import { define, enhance } from "apiiz";
 import { memory } from "apiiz/memory";
 import { validate } from "./enhancers/validate";
 import Joi from "joi";
@@ -267,14 +268,15 @@ const route = (resolver, method, path, payloadSelector) => {
     // get express app object from configs
     const app = context.configs.app;
     const dispatcher = resolver(dispatcher);
-    app[method]((req, res) => {
+    app[method](async (req, res) => {
       // get payload from req
       const payload = payloadSelector(req);
       // dispatch API body and send the result/error to client
-      dispatcher(payload).then(
-        (result) => res.json(result),
-        (error) => res.status(400).json(error)
-      );
+      try {
+        res.json(dispatcher(payload));
+      } catch (error) {
+        res.status(400).json(error);
+      }
     });
     return dispatcher;
   };
@@ -324,6 +326,12 @@ const api = define({
     rest.post("/user/{id}/track", { params: (id) => ({ id }) })
   ).with(throttle, 300),
 });
+```
+
+### Loading relations
+
+```js
+
 ```
 
 ## API References

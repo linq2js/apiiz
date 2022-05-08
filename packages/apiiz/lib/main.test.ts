@@ -1,4 +1,4 @@
-import { define, enhance, enhancer } from "./main";
+import { all, define, enhance, race } from "./main";
 import { rest } from "./rest";
 import { graphql } from "./graphql";
 import { debounce } from "./concurrency";
@@ -48,24 +48,20 @@ test("graphql api", async () => {
   await expect(api.get(1).then((x) => x.id)).resolves.toBe(1);
 });
 
-test("highOrderResolver", async () => {
+test("enhancer", async () => {
   const cacheStorage: Dictionary = {};
-  const cache =
-    <P, R>(
-      resolver: Resolver<P, R>,
-      keyFactory: (payload: P) => string
-    ): Resolver<P, R> =>
-    (context) => {
-      const dispatcher = resolver(context);
-      return (payload) => {
-        const key = keyFactory(payload);
-        if (!cacheStorage[key]) {
-          // the origin api and store the result
-          cacheStorage[key] = dispatcher(payload);
-        }
-        return cacheStorage[key];
-      };
-    };
+  const cache = <P, R>(
+    resolver: Resolver<P, R>,
+    keyFactory: (payload: P) => string
+  ) =>
+    enhance(resolver, (_, dispatcher, payload) => {
+      const key = keyFactory(payload);
+      if (!cacheStorage[key]) {
+        // the origin api and store the result
+        cacheStorage[key] = dispatcher(payload);
+      }
+      return cacheStorage[key];
+    });
   const api = define({
     getUserById: enhance(
       rest<number>("https://jsonplaceholder.typicode.com/todos/{id}", {
@@ -140,7 +136,7 @@ test("include", async () => {
     getUser: enhance(
       memory((id: number) => users.find((x) => x.id === id)!)
     ).with(include, (load) =>
-      load.value(
+      load.single(
         "id",
         "todos",
         memory((userId: number) => todos.filter((x) => x.userId === userId))
@@ -159,7 +155,7 @@ test("include", async () => {
 
 test("validation with enhancer", async () => {
   const validate = <P, R>(resolver: Resolver<P, R>, schema: Schema) =>
-    enhancer(resolver, (_, dispatcher, payload) => {
+    enhance(resolver, (_, dispatcher, payload) => {
       const result = schema.validate(payload, {
         convert: true,
         abortEarly: true,
@@ -181,4 +177,62 @@ test("validation with enhancer", async () => {
   expect(results).toEqual([1, 2, 3]);
   await expect(api.addNumber(true)).rejects.toThrowError();
   expect(results).toEqual([1, 2, 3]);
+});
+
+test("all", async () => {
+  const fetch = memory(async ({ value, ms }: { value: number; ms: number }) => {
+    await delay(ms);
+    return value;
+  });
+  const api = define({
+    fetchAll1: all(
+      {
+        1: fetch,
+        2: fetch,
+        3: fetch,
+      },
+      (payload: number[]) => ({
+        1: { value: payload[0], ms: 10 },
+        2: { value: payload[1], ms: 5 },
+        3: { value: payload[2], ms: 20 },
+      })
+    ),
+    fetchAll2: all(
+      {
+        1: fetch,
+        2: fetch,
+        3: fetch,
+      },
+      (payload: number[]) => ({
+        1: { value: payload[0], ms: 10 },
+        2: { value: payload[1], ms: 5 },
+        3: { value: payload[2], ms: 20 },
+      }),
+      (results) => results[1] + results[2] + results[3]
+    ),
+  });
+  await expect(api.fetchAll1([5, 6, 7])).resolves.toEqual({ 1: 5, 2: 6, 3: 7 });
+  await expect(api.fetchAll2([5, 6, 7])).resolves.toBe(18);
+});
+
+test("race", async () => {
+  const fetch = memory(async ({ value, ms }: { value: number; ms: number }) => {
+    await delay(ms);
+    return value;
+  });
+  const api = define({
+    fetchAll: race(
+      {
+        1: fetch,
+        2: fetch,
+        3: fetch,
+      },
+      (payload: number[]) => ({
+        1: { value: payload[0], ms: 10 },
+        2: { value: payload[1], ms: 5 },
+        3: { value: payload[2], ms: 20 },
+      })
+    ),
+  });
+  await expect(api.fetchAll([5, 6, 7])).resolves.toEqual({ 2: 6 });
 });
