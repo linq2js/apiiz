@@ -143,6 +143,7 @@ test("include", async () => {
       )
     ),
   });
+
   const user1 = await api.getUser(1);
   const user2 = await api.getUser(2);
 

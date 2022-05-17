@@ -1,6 +1,11 @@
 import { Context, Resolver } from "./types";
 
-export const memory =
-  <P, R>(fn: (payload: P, context: Context) => R): Resolver<P, R> =>
-  (context) =>
-    ((payload: P) => fn(payload, context)) as any;
+export interface Memory {
+  <R>(fn: () => R): Resolver<void, R>;
+  <P, R>(fn: (payload: P, context: Context) => R): Resolver<P, R>;
+}
+
+
+export const memory: Memory = (fn: Function) =>
+  (context: any) =>
+    ((payload: any) => fn(payload, context)) as any;
