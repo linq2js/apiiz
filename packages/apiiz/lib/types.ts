@@ -6,7 +6,7 @@ export interface Configs {
   [key: string]: any;
 }
 
-export type OptionFactory<P = void, T = any> = T | ((payload: P) => T);
+export type OptionFactory<P = void, T = any> = ((payload: P) => T) | T;
 
 export type HttpMethod =
   | "get"
