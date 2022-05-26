@@ -84,7 +84,7 @@ const configure = (configs: RestConfigs) => ({ $rest: configs });
 
 const createRestMethod =
   (method: HttpMethod) =>
-  <P, R>(url: string, options?: Omit<RestOptions<P>, "method">) =>
+  <P = void, R = any>(url: string, options?: Omit<RestOptions<P>, "method">) =>
     create<P, R>(url, { method: method, ...options });
 
 /**
