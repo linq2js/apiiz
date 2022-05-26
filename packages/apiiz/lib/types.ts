@@ -69,7 +69,9 @@ export type Mappings<T> = {
 };
 
 export interface Define {
-  <T extends { configs?: Configs; [key: string]: any }>(schema: T): Mappings<T>;
+  <T extends { configs?: Configs; [key: string]: any }>(schema: T): Mappings<
+    Omit<T, "configs">
+  >;
 }
 
 export type Resolver<P = any, R = any> = (context: Context) => Dispatcher<P, R>;
