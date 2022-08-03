@@ -187,9 +187,9 @@ export const all = createResolverGroup("all");
 export const race = createResolverGroup("race");
 
 const isAbortControllerSupported = typeof AbortController !== "undefined";
-export const cancelToken = (): CancelToken => {
+
+export const cancelToken = (abortController?: AbortController): CancelToken => {
   let cancelled = false;
-  let abortController: AbortController | undefined;
 
   const reset = () => {
     cancelled = false;
