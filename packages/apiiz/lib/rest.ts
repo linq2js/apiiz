@@ -16,7 +16,7 @@ export interface RestOptions<P = any> extends Omit<HttpConfigs<P>, "baseUrl"> {
   query?: OptionFactory<P, Dictionary>;
   body?: OptionFactory<P, {} | null | undefined>;
   dismissErrors?: boolean;
-  token?: OptionFactory<P, CancelToken>;
+  token?: OptionFactory<P, CancelToken | undefined>;
 }
 
 export class RestError extends ErrorBase {
